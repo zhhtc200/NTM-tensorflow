@@ -7,6 +7,7 @@ from random import randint
 from ntm import NTM
 from utils import pprint
 from ntm_cell import NTMCell
+from utils import xrange
 
 print_interval = 5
 
