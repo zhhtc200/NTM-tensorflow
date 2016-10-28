@@ -1,7 +1,7 @@
 import tensorflow as tf
 sess = tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=16))
-from tasks import *
 from utils import pp
+from copy import *
 
 flags = tf.app.flags
 flags.DEFINE_string("task", "copy", "Task to run [copy, recall]")
@@ -22,27 +22,15 @@ def main(_):
     pp.pprint(flags.FLAGS.__flags)
 
     with tf.device('/cpu:0'), tf.Session() as sess:
-        if FLAGS.task == 'copy':
-            if FLAGS.is_train:
-                cell, ntm = copy_train(FLAGS, sess)
-            else:
-                cell = NTMCell(input_dim=FLAGS.input_dim,
-                               output_dim=FLAGS.output_dim,
-                               controller_layer_size=FLAGS.controller_layer_size,
-                               write_head_size=FLAGS.write_head_size,
-                               read_head_size=FLAGS.read_head_size)
-                ntm = NTM(cell, sess, 1, FLAGS.max_length,
-                          test_max_length=FLAGS.test_max_length, forward_only=True)
+        cell, ntm = copy_train(FLAGS, sess)
 
-            ntm.load(FLAGS.checkpoint_dir, 'copy')
+        ntm.load(FLAGS.checkpoint_dir, 'copy')
 
-            copy(ntm, FLAGS.test_max_length*1/3, sess)
-            print
-            copy(ntm, FLAGS.test_max_length*2/3, sess)
-            print
-            copy(ntm, FLAGS.test_max_length*3/3, sess)
-        elif FLAGS.task == 'recall':
-            pass
+        copy(ntm, FLAGS.test_max_length*1/3, sess)
+        print
+        copy(ntm, FLAGS.test_max_length*2/3, sess)
+        print
+        copy(ntm, FLAGS.test_max_length*3/3, sess)
 
 if __name__ == '__main__':
     tf.app.run()
