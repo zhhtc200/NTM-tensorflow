@@ -12,13 +12,12 @@ import ntm_cell
 
 import os
 from ops import binary_cross_entropy_with_logits
-from utils import progress, xrange
+from utils import progress
+
 
 class NTM(object):
-    def __init__(self, cell, sess,
-                 min_length, max_length,
-                 test_max_length=120,
-                 min_grad=-10, max_grad=+10, 
+    def __init__(self, cell, sess, length,
+                 min_grad=-10, max_grad=+10,
                  lr=1e-4, momentum=0.9, decay=0.95,
                  scope="NTM", forward_only=False):
         """Create a neural turing machine specified by NTMCell "cell".
@@ -48,29 +47,20 @@ class NTM(object):
 
         self.min_grad = min_grad
         self.max_grad = max_grad
-        self.min_length = min_length
-        self.max_length = max_length
-
-        if forward_only:
-            self._max_length = max_length
-            self.max_length = test_max_length
+        self.length = length
 
         self.inputs = []
-        self.outputs = {}
+        self.outputs = []
         self.true_outputs = []
+        self.masks = []
 
-        self.prev_states = {}
+        self.prev_states = None
         self.input_states = defaultdict(list)
         self.output_states = defaultdict(list)
 
-        self.start_symbol = tf.placeholder(tf.float32, [self.cell.input_dim],
-                                           name='start_symbol')
-        self.end_symbol = tf.placeholder(tf.float32, [self.cell.input_dim],
-                                         name='end_symbol')
-
-        self.losses = {}
-        self.optims = {}
-        self.grads = {}
+        self.losses = None
+        self.optims = None
+        self.grads = None
 
         self.saver = None
         self.params = None
@@ -85,114 +75,70 @@ class NTM(object):
         print(" [*] Building a NTM model")
 
         with tf.variable_scope(self.scope):
-            # present start symbol
-            if is_copy:
-                _, prev_state = self.cell(self.start_symbol, state=None)
-                self.save_state(prev_state, 0, self.max_length)
-
-            zeros = np.zeros(self.cell.input_dim, dtype=np.float32)
-
-            tf.get_variable_scope().reuse_variables()
-            for seq_length in xrange(1, self.max_length + 1):
-                progress(seq_length/float(self.max_length))
-
-                input_ = tf.placeholder(tf.float32, [self.cell.input_dim],
-                                        name='input_%s' % seq_length)
-                true_output = tf.placeholder(tf.float32, [self.cell.output_dim],
-                                             name='true_output_%s' % seq_length)
-
+            prev_state = None
+            for seq_length in range(2 * self.length + 2):
+                # Build input
+                input_ = tf.placeholder(tf.float32, [self.cell.input_dim], name='input_%s' % seq_length)
+                true_output = tf.placeholder(tf.float32, [self.cell.output_dim], name='true_output_%s' % seq_length)
+                mask = tf.placeholder(tf.float32, [1], name='mask%s' % seq_length)
                 self.inputs.append(input_)
                 self.true_outputs.append(true_output)
+                self.masks.append(mask)
 
-                # present inputs
-                _, prev_state = self.cell(input_, prev_state)
-                self.save_state(prev_state, seq_length, self.max_length)
+                if prev_state is None:
+                    output, prev_state = self.cell(input_, state=None)
+                else:
+                    tf.get_variable_scope().reuse_variables()
+                    output, prev_state = self.cell(input_, prev_state)
+                self.outputs.append(output)
 
-                # present end symbol
-                if is_copy:
-                    _, state = self.cell(self.end_symbol, prev_state)
-                    self.save_state(state, seq_length)
+                print(" [*] Process to length %s" % seq_length)
 
-                self.prev_states[seq_length] = state
+            print(" [*] Process to loss function.")
+            self.losses = sequence_loss(logits=self.outputs,
+                                        targets=self.true_outputs,
+                                        weights=self.masks,
+                                        softmax_loss_function=tf.squared_difference)
 
-                if not forward_only:
-                    # present targets
-                    outputs = []
-                    for _ in xrange(seq_length):
-                        output, state = self.cell(zeros, state)
-                        self.save_state(state, seq_length, is_output=True)
-                        outputs.append(output)
+            self.params = tf.trainable_variables()
 
-                    self.outputs[seq_length] = outputs
+            # grads, norm = tf.clip_by_global_norm(
+            #                  tf.gradients(loss, self.params), 5)
+            print(" [*] Process to gradients")
+            grads = []
+            for grad in tf.gradients(self.losses, self.params):
+                if grad is not None:
+                    grads.append(tf.clip_by_value(grad,
+                                                  self.min_grad,
+                                                  self.max_grad))
+                else:
+                    grads.append(grad)
 
-            if not forward_only:
-                for seq_length in xrange(self.min_length, self.max_length + 1):
-                    print(" [*] Building a loss model for seq_length %s" % seq_length)
-
-                    loss = sequence_loss(logits=self.outputs[seq_length],
-                                        targets=self.true_outputs[0:seq_length],
-                                        weights=[1] * seq_length,
-                                        average_across_timesteps=False,
-                                        average_across_batch=False,
-                                        softmax_loss_function=\
-                                            binary_cross_entropy_with_logits)
-
-                    self.losses[seq_length] = loss 
-
-                    if not self.params:
-                        self.params = tf.trainable_variables()
-
-                    #grads, norm = tf.clip_by_global_norm(
-                    #                  tf.gradients(loss, self.params), 5)
-
-                    grads = []
-                    for grad in tf.gradients(loss, self.params):
-                        if grad is not None:
-                            grads.append(tf.clip_by_value(grad,
-                                                          self.min_grad,
-                                                          self.max_grad))
-                        else:
-                            grads.append(grad)
-
-                    self.grads[seq_length] = grads
-                    self.optims[seq_length] = self.opt.apply_gradients(
-                                                  zip(grads, self.params),
-                                                  global_step=self.global_step)
+            self.grads = grads
+            self.optims = self.opt.apply_gradients(
+                zip(grads, self.params),
+                global_step=self.global_step)
 
         self.saver = tf.train.Saver()
         print(" [*] Build a NTM model finished")
 
     def get_outputs(self, seq_length):
-        if seq_length not in self.outputs:
-            with tf.variable_scope(self.scope):
-                tf.get_variable_scope().reuse_variables()
-
-                zeros = np.zeros(self.cell.input_dim, dtype=np.float32)
-                state = self.prev_states[seq_length]
-
-                outputs = []
-                for _ in xrange(seq_length):
-                    output, state = self.cell(zeros, state)
-                    self.save_state(state, seq_length, is_output=True)
-                    outputs.append(output)
-
-                self.outputs[seq_length] = outputs
-        return self.outputs[seq_length]
+        return self.outputs
 
     def get_loss(self, seq_length):
-        if seq_length not in  self.outputs:
+        if seq_length not in self.outputs:
             self.get_outputs(seq_length)
 
         if seq_length not in self.losses:
             loss = sequence_loss(logits=self.outputs[seq_length],
-                                targets=self.true_outputs[0:seq_length],
-                                weights=[1] * seq_length,
-                                average_across_timesteps=False,
-                                average_across_batch=False,
-                                softmax_loss_function=\
-                                    binary_cross_entropy_with_logits)
+                                 targets=self.true_outputs[0:seq_length],
+                                 weights=[1] * seq_length,
+                                 average_across_timesteps=False,
+                                 average_across_batch=False,
+                                 softmax_loss_function= \
+                                     binary_cross_entropy_with_logits)
 
-            self.losses[seq_length] = loss 
+            self.losses[seq_length] = loss
         return self.losses[seq_length]
 
     def get_output_states(self, seq_length):
@@ -205,7 +151,7 @@ class NTM(object):
                 outputs = []
                 state = self.prev_states[seq_length]
 
-                for _ in xrange(seq_length):
+                for _ in range(seq_length):
                     output, state = self.cell(zeros, state)
                     self.save_state(state, seq_length, is_output=True)
                     outputs.append(output)
@@ -227,26 +173,26 @@ class NTM(object):
             state_to_add = self.input_states
 
         if to:
-            for idx in xrange(from_, to+1):
+            for idx in range(from_, to + 1):
                 state_to_add[idx].append(state)
         else:
             state_to_add[from_].append(state)
 
     def save(self, checkpoint_dir, task_name, step):
-        task_dir = os.path.join(checkpoint_dir, "%s_%s" % (task_name, self.max_length))
+        task_dir = os.path.join(checkpoint_dir, "%s_%s" % (task_name, self.length))
         file_name = "NTM_%s.model" % task_name
 
         if not os.path.exists(task_dir):
             os.makedirs(task_dir)
 
         self.saver.save(self.sess,
-                       os.path.join(task_dir, file_name),
-                       global_step = step.astype(int))
+                        os.path.join(task_dir, file_name),
+                        global_step=step.astype(int))
 
     def load(self, checkpoint_dir, task_name):
         print(" [*] Reading checkpoints...")
 
-        task_dir = "%s_%s" % (task_name, self.max_length)
+        task_dir = "%s_%s" % (task_name, self.length)
         checkpoint_dir = os.path.join(checkpoint_dir, task_dir)
 
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)

@@ -112,7 +112,7 @@ class NTMCell(object):
         with tf.variable_scope("controller"):
             output_list = []
             hidden_list = []
-            for layer_idx in xrange(self.controller_layer_size):
+            for layer_idx in range(self.controller_layer_size):
                 o_prev = output_list_prev[layer_idx]
                 h_prev = hidden_list_prev[layer_idx]
 
@@ -160,7 +160,7 @@ class NTMCell(object):
                 read_w_list = []
                 read_list = []
 
-                for idx in xrange(self.read_head_size):
+                for idx in range(self.read_head_size):
                     read_w_prev_idx = read_w_list_prev[idx]
                     read_w_idx, read_idx = self.build_read_head(M_prev, read_w_prev_idx,
                                                                 last_output, idx)
@@ -189,7 +189,7 @@ class NTMCell(object):
                 M_erases = []
                 M_writes = []
 
-                for idx in xrange(self.write_head_size):
+                for idx in range(self.write_head_size):
                     write_w_prev_idx = write_w_list_prev[idx]
 
                     write_w_idx, write_idx, erase_idx = \
@@ -283,7 +283,7 @@ class NTMCell(object):
             # read weights
             read_w_list_init = []
             read_list_init = []
-            for idx in xrange(self.read_head_size):
+            for idx in range(self.read_head_size):
                 read_w_idx = Linear(dummy, self.mem_size, is_range=True, 
                                     squeeze=True, name='read_w_%d' % idx)
                 read_w_list_init.append(softmax(read_w_idx))
@@ -294,7 +294,7 @@ class NTMCell(object):
 
             # write weights
             write_w_list_init = []
-            for idx in xrange(self.write_head_size):
+            for idx in range(self.write_head_size):
                 write_w_idx = Linear(dummy, self.mem_size, is_range=True,
                                      squeeze=True, name='write_w_%s' % idx)
                 write_w_list_init.append(softmax(write_w_idx))
@@ -302,7 +302,7 @@ class NTMCell(object):
             # controller state
             output_init_list = []                     
             hidden_init_list = []                     
-            for idx in xrange(self.controller_layer_size):
+            for idx in range(self.controller_layer_size):
                 output_init_idx = Linear(dummy, self.controller_dim,
                                          squeeze=True, name='output_init_%s' % idx)
                 output_init_list.append(tf.tanh(output_init_idx))
@@ -349,7 +349,7 @@ class NTMCell(object):
         if self.read_head_size == 1:
             print(fmt % (argmax(read_w_list[0])))
         else:
-            for idx in xrange(self.read_head_size):
+            for idx in range(self.read_head_size):
                 print(fmt % np.argmax(read_w_list[idx]))
 
     def print_write_max(self, sess):
@@ -359,5 +359,5 @@ class NTMCell(object):
         if self.write_head_size == 1:
             print(fmt % (argmax(write_w_list[0])))
         else:
-            for idx in xrange(self.write_head_size):
+            for idx in range(self.write_head_size):
                 print(fmt % argmax(write_w_list[idx]))
