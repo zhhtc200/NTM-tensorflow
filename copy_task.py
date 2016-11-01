@@ -11,49 +11,49 @@ from ntm_cell import NTMCell
 print_interval = 50
 
 
-def copy(ntm, seq_length, sess, print_=True):
-    start_symbol = np.zeros([ntm.cell.input_dim], dtype=np.float32)
-    start_symbol[0] = 1
-    end_symbol = np.zeros([ntm.cell.input_dim], dtype=np.float32)
-    end_symbol[1] = 1
-
-    seq = generate_copy_sequence(seq_length, ntm.cell.input_dim - 2)
-
-    feed_dict = {input_: vec for vec, input_ in zip(seq, ntm.inputs)}
-    feed_dict.update(
-        {true_output: vec for vec, true_output in zip(seq, ntm.true_outputs)}
-    )
-    feed_dict.update({
-        ntm.start_symbol: start_symbol,
-        ntm.end_symbol: end_symbol
-    })
-
-    input_states = [state['write_w'][0] for state in ntm.input_states[seq_length]]
-    output_states = [state['read_w'][0] for state in ntm.get_output_states(seq_length)]
-
-    result = sess.run(ntm.get_outputs(seq_length) + \
-                      input_states + output_states + \
-                      [ntm.get_loss(seq_length)],
-                      feed_dict=feed_dict)
-
-    is_sz = len(input_states)
-    os_sz = len(output_states)
-
-    outputs = result[:seq_length]
-    read_ws = result[seq_length:seq_length + is_sz]
-    write_ws = result[seq_length + is_sz:seq_length + is_sz + os_sz]
-    loss = result[-1]
-
-    if print_:
-        np.set_printoptions(suppress=True)
-        print(" true output : ")
-        pprint(seq)
-        print(" predicted output :")
-        pprint(np.round(outputs))
-        print(" Loss : %f" % loss)
-        np.set_printoptions(suppress=False)
-    else:
-        return seq, outputs, read_ws, write_ws, loss
+# def copy(ntm, seq_length, sess, print_=True):
+#     start_symbol = np.zeros([ntm.cell.input_dim], dtype=np.float32)
+#     start_symbol[0] = 1
+#     end_symbol = np.zeros([ntm.cell.input_dim], dtype=np.float32)
+#     end_symbol[1] = 1
+#
+#     seq = generate_copy_sequence(seq_length, ntm.cell.input_dim - 2)
+#
+#     feed_dict = {input_: vec for vec, input_ in zip(seq, ntm.inputs)}
+#     feed_dict.update(
+#         {true_output: vec for vec, true_output in zip(seq, ntm.true_outputs)}
+#     )
+#     feed_dict.update({
+#         ntm.start_symbol: start_symbol,
+#         ntm.end_symbol: end_symbol
+#     })
+#
+#     input_states = [state['write_w'][0] for state in ntm.input_states[seq_length]]
+#     output_states = [state['read_w'][0] for state in ntm.get_output_states(seq_length)]
+#
+#     result = sess.run(ntm.get_outputs(seq_length) + \
+#                       input_states + output_states + \
+#                       [ntm.get_loss(seq_length)],
+#                       feed_dict=feed_dict)
+#
+#     is_sz = len(input_states)
+#     os_sz = len(output_states)
+#
+#     outputs = result[:seq_length]
+#     read_ws = result[seq_length:seq_length + is_sz]
+#     write_ws = result[seq_length + is_sz:seq_length + is_sz + os_sz]
+#     loss = result[-1]
+#
+#     if print_:
+#         np.set_printoptions(suppress=True)
+#         print(" true output : ")
+#         pprint(seq)
+#         print(" predicted output :")
+#         pprint(np.round(outputs))
+#         print(" Loss : %f" % loss)
+#         np.set_printoptions(suppress=False)
+#     else:
+#         return seq, outputs, read_ws, write_ws, loss
 
 
 def copy_train(config, sess):
@@ -108,14 +108,6 @@ def copy_train(config, sess):
 
     print("Training Copy task finished")
     return cell, ntm
-
-
-def generate_copy_sequence(length, bits):
-    seq = np.zeros([length, bits + 2], dtype=np.float32)
-    for idx in range(length):
-        seq[idx, 2:bits + 2] = np.random.rand(bits).round()
-    return list(seq)
-
 
 def build_seq_batch(max_length, input_dim):
     X_input = np.zeros((max_length*2+2, input_dim+2))

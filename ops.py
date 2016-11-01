@@ -191,7 +191,7 @@ def outer_product(*inputs):
     elif order == 3:
         size = []
         idx = 1
-        for i in xrange(order):
+        for i in range(order):
             size.append(inputs[i].get_shape()[0])
         output = tf.zeros(size)
 

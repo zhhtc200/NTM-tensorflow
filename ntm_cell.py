@@ -7,8 +7,6 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow.python.ops import array_ops
-
-from utils import *
 from ops import *
 
 
@@ -275,6 +273,7 @@ class NTMCell(object):
                 return w, add, erase
 
     def initial_state(self, dummy_value=0.0):
+        #TODO: Remove the dummy vector setting.
         self.depth = 0
         self.states = []
         with tf.variable_scope("init_cell"):

@@ -19,7 +19,7 @@ class NTM(object):
     def __init__(self, cell, sess, length,
                  min_grad=-10, max_grad=+10,
                  lr=1e-6, momentum=0.9, decay=0.95,
-                 scope="NTM", forward_only=False):
+                 scope="NTM"):
         """Create a neural turing machine specified by NTMCell "cell".
 
         Args:
@@ -69,9 +69,9 @@ class NTM(object):
         self.opt = tf.train.RMSPropOptimizer(self.lr,
                                              decay=self.decay,
                                              momentum=self.momentum)
-        self.build_model(forward_only)
+        self.build_model()
 
-    def build_model(self, forward_only, is_copy=True):
+    def build_model(self):
         print(" [*] Building a NTM model")
 
         with tf.variable_scope(self.scope):
@@ -98,12 +98,10 @@ class NTM(object):
             self.losses = sequence_loss(logits=self.outputs,
                                         targets=self.true_outputs,
                                         weights=self.masks,
-                                        softmax_loss_function=tf.squared_difference)
+                                        softmax_loss_function=tf.nn.softmax_cross_entropy_with_logits)
 
             self.params = tf.trainable_variables()
 
-            # grads, norm = tf.clip_by_global_norm(
-            #                  tf.gradients(loss, self.params), 5)
             print(" [*] Process to gradients")
             grads = []
             for grad in tf.gradients(self.losses, self.params):
@@ -121,62 +119,6 @@ class NTM(object):
 
         self.saver = tf.train.Saver()
         print(" [*] Build a NTM model finished")
-
-    def get_outputs(self, seq_length):
-        return self.outputs
-
-    def get_loss(self, seq_length):
-        if seq_length not in self.outputs:
-            self.get_outputs(seq_length)
-
-        if seq_length not in self.losses:
-            loss = sequence_loss(logits=self.outputs[seq_length],
-                                 targets=self.true_outputs[0:seq_length],
-                                 weights=[1] * seq_length,
-                                 average_across_timesteps=False,
-                                 average_across_batch=False,
-                                 softmax_loss_function= \
-                                     binary_cross_entropy_with_logits)
-
-            self.losses[seq_length] = loss
-        return self.losses[seq_length]
-
-    def get_output_states(self, seq_length):
-        zeros = np.zeros(self.cell.input_dim, dtype=np.float32)
-
-        if seq_length not in self.output_states:
-            with tf.variable_scope(self.scope):
-                tf.get_variable_scope().reuse_variables()
-
-                outputs = []
-                state = self.prev_states[seq_length]
-
-                for _ in range(seq_length):
-                    output, state = self.cell(zeros, state)
-                    self.save_state(state, seq_length, is_output=True)
-                    outputs.append(output)
-                self.outputs[seq_length] = outputs
-        return self.output_states[seq_length]
-
-    @property
-    def loss(self):
-        return self.losses[self.cell.depth]
-
-    @property
-    def optim(self):
-        return self.optims[self.cell.depth]
-
-    def save_state(self, state, from_, to=None, is_output=False):
-        if is_output:
-            state_to_add = self.output_states
-        else:
-            state_to_add = self.input_states
-
-        if to:
-            for idx in range(from_, to + 1):
-                state_to_add[idx].append(state)
-        else:
-            state_to_add[from_].append(state)
 
     def save(self, checkpoint_dir, task_name, step):
         task_dir = os.path.join(checkpoint_dir, "%s_%s" % (task_name, self.length))
