@@ -8,7 +8,7 @@ from ntm import NTM
 from utils import pprint
 from ntm_cell import NTMCell
 
-print_interval = 5
+print_interval = 50
 
 
 def copy(ntm, seq_length, sess, print_=True):
@@ -91,16 +91,20 @@ def copy_train(config, sess):
             {mask: vec for vec, mask in zip(masks, ntm.masks)}
         )
 
-        _, cost, step = sess.run([ntm.optims,
-                                  ntm.losses,
-                                  ntm.global_step], feed_dict=feed_dict)
-
-        # if idx % 100 == 0:
-        #     ntm.save(config.checkpoint_dir, 'copy', step)
-
-        if idx % print_interval == 0:
-            print("\r[%5d] %2d: %.4f (%.1fs)" \
-                  % (idx, seq_length, cost, time.time() - start_time), end='', flush=True)
+        if idx % print_interval != 0:
+            _, cost, step = sess.run([ntm.optims,
+                                      ntm.losses,
+                                      ntm.global_step], feed_dict=feed_dict)
+        else:
+            _, cost, step, Y_pre = sess.run([ntm.optims,
+                                      ntm.losses,
+                                      ntm.global_step,
+                                      ntm.outputs], feed_dict=feed_dict)
+            print("\r [%5d] %2d: %.4f (%.1fs)" \
+                  % (idx, seq_length, cost, time.time() - start_time), end='')
+            Y_pre = np.array(Y_pre)
+            print(np.argmax(Y, axis=1)[-5:], end='')
+            print(np.argmax(Y_pre, axis=1)[-5:], end='', flush=True)
 
     print("Training Copy task finished")
     return cell, ntm

@@ -11,6 +11,7 @@ from tensorflow.python.ops import array_ops
 from utils import *
 from ops import *
 
+
 class NTMCell(object):
     def __init__(self, input_dim, output_dim,
                  mem_size=128, mem_dim=20, controller_dim=100,
@@ -69,18 +70,20 @@ class NTMCell(object):
         hidden_list_prev = state['hidden']
 
         # build a controller
-        output_list, hidden_list = self.build_controller(input_, read_list_prev,
-                                                         output_list_prev,
-                                                         hidden_list_prev)
+        output_list, hidden_list = \
+            self.build_controller(input_, read_list_prev,
+                                  output_list_prev,
+                                  hidden_list_prev)
 
         # last output layer from LSTM controller
         last_output = output_list[-1]
 
         # build a memory
-        M, read_w_list, write_w_list, read_list = self.build_memory(M_prev,
-                                                                    read_w_list_prev,
-                                                                    write_w_list_prev,
-                                                                    last_output)
+        M, read_w_list, write_w_list, read_list = \
+            self.build_memory(M_prev,
+                              read_w_list_prev,
+                              write_w_list_prev,
+                              last_output)
 
         # get a new output
         new_output = self.new_output(last_output)
@@ -103,10 +106,13 @@ class NTMCell(object):
         """Logistic sigmoid output layers."""
 
         with tf.variable_scope('output'):
-            return tf.sigmoid(Linear(output, self.output_dim, name='output'))
+            return tf.sigmoid(
+                Linear(output, self.output_dim,
+                       name='output')
+            )
 
-    def build_controller(self, input_,
-                         read_list_prev, output_list_prev, hidden_list_prev):
+    def build_controller(self, input_, read_list_prev,
+                         output_list_prev, hidden_list_prev):
         """Build LSTM controller."""
 
         with tf.variable_scope("controller"):
