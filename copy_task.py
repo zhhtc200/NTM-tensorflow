@@ -80,8 +80,8 @@ def copy_train(config, sess):
     start_time = time.time()
     print('')
     for idx in range(config.epoch):
-        seq_length = config.length
-        X, Y, masks = build_seq_batch(seq_length, config.input_dim - 2)
+        seq_length = np.random.randint(2, config.length+1)
+        X, Y, masks = build_seq_batch(seq_length, config.length, config.input_dim - 2)
 
         feed_dict = {input_: vec for vec, input_ in zip(X, ntm.inputs)}
         feed_dict.update(
@@ -100,27 +100,29 @@ def copy_train(config, sess):
                                       ntm.losses,
                                       ntm.global_step,
                                       ntm.outputs], feed_dict=feed_dict)
-            print("\r [%5d] %2d: %.4f (%.1fs)" \
+            print("[%5d] %2d: %.4f (%.1fs)" \
                   % (idx, seq_length, cost, time.time() - start_time), end='')
             Y_pre = np.array(Y_pre)
-            print(np.argmax(Y, axis=1)[-5:], end='')
-            print(np.argmax(Y_pre, axis=1)[-5:], end='', flush=True)
+            mask_id = masks.reshape(-1).astype(bool)
+            print(np.argmax(Y, axis=1)[mask_id], end='')
+            print(np.argmax(Y_pre, axis=1)[mask_id])
 
     print("Training Copy task finished")
     return cell, ntm
 
-def build_seq_batch(max_length, input_dim):
-    X_input = np.zeros((max_length*2+2, input_dim+2))
-    Y_input = np.zeros((max_length*2+2, input_dim+2))
-    Mask    = np.zeros((max_length*2+2, 1))
+
+def build_seq_batch(length, max_len, input_dim):
+    X_input = np.zeros((max_len * 2 + 2, input_dim + 2))
+    Y_input = np.zeros((max_len * 2 + 2, input_dim + 2))
+    Mask    = np.zeros((max_len * 2 + 2, 1))
 
     # Build time sequences
     X_input[0, 0] = 1
-    for time_instant in range(max_length):
+    for time_instant in range(length):
         picked = np.random.randint(input_dim)
         X_input[time_instant+1, picked+2] = 1
-        Y_input[time_instant+max_length+2, picked+2] = 1
-    X_input[max_length+1, 1] = 1
-    Mask[max_length+2:2*max_length+2,0] = 1
+        Y_input[time_instant + length + 2, picked + 2] = 1
+    X_input[length + 1, 1] = 1
+    Mask[length + 2:2 * length + 2, 0] = 1
 
     return X_input, Y_input, Mask

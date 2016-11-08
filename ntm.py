@@ -18,7 +18,7 @@ from utils import progress
 class NTM(object):
     def __init__(self, cell, sess, length,
                  min_grad=-10, max_grad=+10,
-                 lr=1e-6, momentum=0.9, decay=0.95,
+                 lr=1e-2, momentum=0.9, decay=0.95,
                  scope="NTM"):
         """Create a neural turing machine specified by NTMCell "cell".
 
@@ -98,7 +98,9 @@ class NTM(object):
             self.losses = sequence_loss(logits=self.outputs,
                                         targets=self.true_outputs,
                                         weights=self.masks,
-                                        softmax_loss_function=tf.nn.softmax_cross_entropy_with_logits)
+                                        average_across_timesteps=False,
+                                        average_across_batch=False,
+                                        softmax_loss_function=binary_cross_entropy_with_logits)
 
             self.params = tf.trainable_variables()
 

@@ -125,7 +125,7 @@ class NTMCell(object):
                         return linear([input_, o_prev] + read_list_prev,
                                       output_size = self.controller_dim,
                                       bias = True,
-                                      scope = "%s_gate_%s" % (gate_name, layer_idx))
+                                      scope = "%s_gate_%s" % (gate_name, 3))
                 else:
                     def new_gate(gate_name):
                         return linear([output_list[-1], o_prev],
@@ -273,49 +273,38 @@ class NTMCell(object):
                 return w, add, erase
 
     def initial_state(self, dummy_value=0.0):
-        #TODO: Remove the dummy vector setting.
         self.depth = 0
         self.states = []
         with tf.variable_scope("init_cell"):
-            # always zero
-            dummy = tf.Variable(tf.constant([[dummy_value]], dtype=tf.float32))
-
             # memory
-            M_init_linear = tf.tanh(Linear(dummy, self.mem_size * self.mem_dim,
-                                    name='M_init_linear'))
-            M_init = tf.reshape(M_init_linear, [self.mem_size, self.mem_dim])
+            M_init = array_ops.zeros([self.mem_size, self.mem_dim], dtype=tf.float32)
 
             # read weights
             read_w_list_init = []
             read_list_init = []
             for idx in range(self.read_head_size):
-                read_w_idx = Linear(dummy, self.mem_size, is_range=True, 
-                                    squeeze=True, name='read_w_%d' % idx)
+                read_w_idx = array_ops.zeros([self.mem_size], dtype=tf.float32, name='read_w_%d' % idx)
                 read_w_list_init.append(softmax(read_w_idx))
 
-                read_init_idx = Linear(dummy, self.mem_dim,
-                                       squeeze=True, name='read_init_%d' % idx)
+                read_init_idx = array_ops.zeros([self.mem_dim], dtype=tf.float32, name='read_init_%d' % idx)
                 read_list_init.append(tf.tanh(read_init_idx))
 
             # write weights
             write_w_list_init = []
             for idx in range(self.write_head_size):
-                write_w_idx = Linear(dummy, self.mem_size, is_range=True,
-                                     squeeze=True, name='write_w_%s' % idx)
+                write_w_idx = array_ops.zeros([self.mem_size], dtype=tf.float32, name='write_w_%s' % idx)
                 write_w_list_init.append(softmax(write_w_idx))
 
             # controller state
             output_init_list = []                     
             hidden_init_list = []                     
             for idx in range(self.controller_layer_size):
-                output_init_idx = Linear(dummy, self.controller_dim,
-                                         squeeze=True, name='output_init_%s' % idx)
+                output_init_idx = array_ops.zeros([self.controller_dim], dtype=tf.float32, name='output_init_%s' % idx)
                 output_init_list.append(tf.tanh(output_init_idx))
-                hidden_init_idx = Linear(dummy, self.controller_dim,
-                                         squeeze=True, name='hidden_init_%s' % idx)
+                hidden_init_idx = array_ops.zeros([self.controller_dim], dtype=tf.float32, name='hidden_init_%s' % idx)
                 hidden_init_list.append(tf.tanh(hidden_init_idx))
 
-            output = tf.tanh(Linear(dummy, self.output_dim, name='new_output'))
+            output = array_ops.zeros([self.output_dim], dtype=tf.float32, name='new_output')
 
             state = {
                 'M': M_init,
