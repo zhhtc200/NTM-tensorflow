@@ -9,7 +9,7 @@ FLAGS = {
     'epoch': 100000,
     'input_dim': 5,
     'output_dim': 5,
-    'length':5,
+    'length':10,
     'controller_layer_size':1,
     'write_head_size': 1,
     'read_head_size': 1,
@@ -18,7 +18,7 @@ FLAGS = {
 }
 FLAGS = convert(FLAGS)
 
-with tf.device('/cpu:0'), tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=16)) as sess:
+with tf.device('/cpu:0'), tf.Session() as sess:
     cell, ntm = copy_train(FLAGS, sess)
     ntm.load(FLAGS.checkpoint_dir, 'copy')
 
