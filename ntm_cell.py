@@ -283,25 +283,35 @@ class NTMCell(object):
             read_w_list_init = []
             read_list_init = []
             for idx in range(self.read_head_size):
-                read_w_idx = array_ops.zeros([self.mem_size], dtype=tf.float32, name='read_w_%d' % idx)
+                read_w_idx = array_ops.zeros([self.mem_size],
+                                             dtype=tf.float32,
+                                             name='read_w_%d' % idx)
                 read_w_list_init.append(softmax(read_w_idx))
 
-                read_init_idx = array_ops.zeros([self.mem_dim], dtype=tf.float32, name='read_init_%d' % idx)
+                read_init_idx = array_ops.zeros([self.mem_dim],
+                                                dtype=tf.float32,
+                                                name='read_init_%d' % idx)
                 read_list_init.append(tf.tanh(read_init_idx))
 
             # write weights
             write_w_list_init = []
             for idx in range(self.write_head_size):
-                write_w_idx = array_ops.zeros([self.mem_size], dtype=tf.float32, name='write_w_%s' % idx)
+                write_w_idx = array_ops.zeros([self.mem_size],
+                                              dtype=tf.float32,
+                                              name='write_w_%s' % idx)
                 write_w_list_init.append(softmax(write_w_idx))
 
             # controller state
             output_init_list = []                     
             hidden_init_list = []                     
             for idx in range(self.controller_layer_size):
-                output_init_idx = array_ops.zeros([self.controller_dim], dtype=tf.float32, name='output_init_%s' % idx)
+                output_init_idx = \
+                    array_ops.zeros([self.controller_dim], dtype=tf.float32,
+                                    name='output_init_%s' % idx)
                 output_init_list.append(tf.tanh(output_init_idx))
-                hidden_init_idx = array_ops.zeros([self.controller_dim], dtype=tf.float32, name='hidden_init_%s' % idx)
+                hidden_init_idx = \
+                    array_ops.zeros([self.controller_dim], dtype=tf.float32,
+                                    name='hidden_init_%s' % idx)
                 hidden_init_list.append(tf.tanh(hidden_init_idx))
 
             output = array_ops.zeros([self.output_dim], dtype=tf.float32, name='new_output')
@@ -319,39 +329,3 @@ class NTMCell(object):
             self.states.append(state)
 
             return output, state
-
-    def get_memory(self, depth=None):
-        depth = depth if depth else self.depth
-        return self.states[depth - 1]['M']
-
-    def get_read_weights(self, depth=None):
-        depth = depth if depth else self.depth
-        return self.states[depth - 1]['read_w']
-
-    def get_write_weights(self, depth=None):
-        depth = depth if depth else self.depth
-        return self.states[depth - 1]['write_w']
-
-    def get_read_vector(self, depth=None):
-        depth = depth if depth else self.depth
-        return self.states[depth - 1]['read']
-
-    def print_read_max(self, sess):
-        read_w_list = sess.run(self.get_read_weights())
-
-        fmt = "%-4d %.4f"
-        if self.read_head_size == 1:
-            print(fmt % (argmax(read_w_list[0])))
-        else:
-            for idx in range(self.read_head_size):
-                print(fmt % np.argmax(read_w_list[idx]))
-
-    def print_write_max(self, sess):
-        write_w_list = sess.run(self.get_write_weights())
-
-        fmt = "%-4d %.4f"
-        if self.write_head_size == 1:
-            print(fmt % (argmax(write_w_list[0])))
-        else:
-            for idx in range(self.write_head_size):
-                print(fmt % argmax(write_w_list[idx]))
