@@ -131,7 +131,7 @@ class NTM(object):
 
         self.saver.save(self.sess,
                         os.path.join(task_dir, file_name),
-                        global_step=step.astype(int))
+                        global_step=step)
 
     def load(self, checkpoint_dir, task_name):
         print(" [*] Reading checkpoints...")

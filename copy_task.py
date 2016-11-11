@@ -10,52 +10,6 @@ from ntm_cell import NTMCell
 
 print_interval = 50
 
-
-# def copy(ntm, seq_length, sess, print_=True):
-#     start_symbol = np.zeros([ntm.cell.input_dim], dtype=np.float32)
-#     start_symbol[0] = 1
-#     end_symbol = np.zeros([ntm.cell.input_dim], dtype=np.float32)
-#     end_symbol[1] = 1
-#
-#     seq = generate_copy_sequence(seq_length, ntm.cell.input_dim - 2)
-#
-#     feed_dict = {input_: vec for vec, input_ in zip(seq, ntm.inputs)}
-#     feed_dict.update(
-#         {true_output: vec for vec, true_output in zip(seq, ntm.true_outputs)}
-#     )
-#     feed_dict.update({
-#         ntm.start_symbol: start_symbol,
-#         ntm.end_symbol: end_symbol
-#     })
-#
-#     input_states = [state['write_w'][0] for state in ntm.input_states[seq_length]]
-#     output_states = [state['read_w'][0] for state in ntm.get_output_states(seq_length)]
-#
-#     result = sess.run(ntm.get_outputs(seq_length) + \
-#                       input_states + output_states + \
-#                       [ntm.get_loss(seq_length)],
-#                       feed_dict=feed_dict)
-#
-#     is_sz = len(input_states)
-#     os_sz = len(output_states)
-#
-#     outputs = result[:seq_length]
-#     read_ws = result[seq_length:seq_length + is_sz]
-#     write_ws = result[seq_length + is_sz:seq_length + is_sz + os_sz]
-#     loss = result[-1]
-#
-#     if print_:
-#         np.set_printoptions(suppress=True)
-#         print(" true output : ")
-#         pprint(seq)
-#         print(" predicted output :")
-#         pprint(np.round(outputs))
-#         print(" Loss : %f" % loss)
-#         np.set_printoptions(suppress=False)
-#     else:
-#         return seq, outputs, read_ws, write_ws, loss
-
-
 def copy_train(config, sess):
     if not os.path.isdir(config.checkpoint_dir):
         os.makedirs(config.checkpoint_dir)
@@ -108,6 +62,7 @@ def copy_train(config, sess):
             print(np.argmax(Y_pre, axis=1)[mask_id])
 
     print("Training Copy task finished")
+    ntm.save(config.checkpoint_dir, 'copy', idx)
     return cell, ntm
 
 
