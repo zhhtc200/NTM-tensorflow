@@ -105,8 +105,8 @@ class NTMCell(object):
 
         with tf.variable_scope('output'):
             return tf.sigmoid(
-                Linear(output, self.output_dim,
-                       name='output')
+                linear(output, self.output_dim, bias=True,
+                       scope='output')
             )
 
     def build_controller(self, input_, read_list_prev,
@@ -125,7 +125,7 @@ class NTMCell(object):
                         return linear([input_, o_prev] + read_list_prev,
                                       output_size = self.controller_dim,
                                       bias = True,
-                                      scope = "%s_gate_%s" % (gate_name, 3))
+                                      scope = "%s_gate_%s" % (gate_name, layer_idx))
                 else:
                     def new_gate(gate_name):
                         return linear([output_list[-1], o_prev],
@@ -228,18 +228,18 @@ class NTMCell(object):
             # Figure 2.
             # Amplify or attenuate the precision
             with tf.variable_scope("k"):
-                k = tf.tanh(Linear(last_output, self.mem_dim, name='k_%s' % idx))
+                k = tf.tanh(linear(last_output, self.mem_dim, bias=True, scope='k_%s' % idx))
             # Interpolation gate
             with tf.variable_scope("g"):
-                g = tf.sigmoid(Linear(last_output, 1, name='g_%s' % idx))
+                g = tf.sigmoid(linear(last_output, 1, bias=True, scope='g_%s' % idx))
             # shift weighting
             with tf.variable_scope("s_w"):
-                w = Linear(last_output, 2 * self.shift_range + 1, name='s_w_%s' % idx)
+                w = linear(last_output, 2 * self.shift_range + 1, bias=True, scope='s_w_%s' % idx)
                 s_w = softmax(w)
             with tf.variable_scope("beta"):
-                beta  = tf.nn.softplus(Linear(last_output, 1, name='beta_%s' % idx))
+                beta  = tf.nn.softplus(linear(last_output, 1, bias=True, scope='beta_%s' % idx))
             with tf.variable_scope("gamma"):
-                gamma = tf.add(tf.nn.softplus(Linear(last_output, 1, name='gamma_%s' % idx)),
+                gamma = tf.add(tf.nn.softplus(linear(last_output, 1, bias=True, scope='gamma_%s' % idx)),
                                tf.constant(1.0))
 
             # 3.3.1
@@ -268,8 +268,8 @@ class NTMCell(object):
                 return w, read
             else:
                 # 3.2 Writing
-                erase = tf.sigmoid(Linear(last_output, self.mem_dim, name='erase_%s' % idx))
-                add = tf.tanh(Linear(last_output, self.mem_dim, name='add_%s' % idx))
+                erase = tf.sigmoid(linear(last_output, self.mem_dim, bias=True, scope='erase_%s' % idx))
+                add = tf.tanh(linear(last_output, self.mem_dim, bias=True, scope='add_%s' % idx))
                 return w, add, erase
 
     def initial_state(self, dummy_value=0.0):

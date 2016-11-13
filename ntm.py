@@ -11,9 +11,6 @@ from tensorflow.python.ops.seq2seq import sequence_loss
 import ntm_cell
 
 import os
-from ops import binary_cross_entropy_with_logits
-from utils import progress
-
 
 class NTM(object):
     def __init__(self, cell, sess, length,
@@ -92,13 +89,11 @@ class NTM(object):
                     output, prev_state = self.cell(input_, prev_state)
                 self.outputs.append(output)
 
-                print(" [*] Process to length %s" % seq_length)
-
             print(" [*] Process to loss function.")
             self.losses = sequence_loss(logits=self.outputs,
                                         targets=self.true_outputs,
                                         weights=self.masks,
-                                        average_across_timesteps=False,
+                                        average_across_timesteps=True,
                                         average_across_batch=False,
                                         softmax_loss_function=tf.nn.softmax_cross_entropy_with_logits)
 

@@ -6,10 +6,10 @@ def convert(dictionary):
     return namedtuple('GenericDict', dictionary.keys())(**dictionary)
 
 FLAGS = {
-    'epoch': 1000,
-    'input_dim': 5,
-    'output_dim': 5,
-    'length':4,
+    'epoch': 100000,
+    'input_dim': 10,
+    'output_dim': 10,
+    'length':10,
     'controller_layer_size':1,
     'write_head_size': 1,
     'read_head_size': 1,

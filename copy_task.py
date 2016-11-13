@@ -11,9 +11,6 @@ from ntm_cell import NTMCell
 print_interval = 50
 
 def copy_train(config, sess):
-    if not os.path.isdir(config.checkpoint_dir):
-        os.makedirs(config.checkpoint_dir)
-
     # delimiter flag for start and end
     start_symbol = np.zeros([config.input_dim], dtype=np.float32)
     start_symbol[0] = 1
@@ -27,9 +24,15 @@ def copy_train(config, sess):
                    read_head_size=config.read_head_size)
     ntm = NTM(cell, sess, config.length)
 
-    print(" [*] Initialize all variables")
-    tf.initialize_all_variables().run()
-    print(" [*] Initialization finished")
+    if not os.path.isdir(config.checkpoint_dir):
+        os.makedirs(config.checkpoint_dir)
+
+
+        print(" [*] Initialize all variables")
+        tf.initialize_all_variables().run()
+        print(" [*] Initialization finished")
+    else:
+        ntm.load(config.checkpoint_dir, 'copy')
 
     start_time = time.time()
     print('')

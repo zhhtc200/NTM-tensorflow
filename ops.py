@@ -10,7 +10,7 @@ from tensorflow.python.ops import variable_scope as vs
 
 from utils import *
 
-def linear(args, output_size, bias, bias_start=0.0, scope=None):
+def linear(args, output_size, bias, bias_dev=0.5, scope=None):
     """Linear map: sum_i(args[i] * W[i]), where W[i] is a variable.
 
     Args:
@@ -59,67 +59,67 @@ def linear(args, output_size, bias, bias_start=0.0, scope=None):
             return res
         bias_term = vs.get_variable(
             "Bias", [output_size],
-            initializer=init_ops.constant_initializer(bias_start))
+            initializer=init_ops.truncated_normal_initializer(stddev=bias_dev))
 
     if is_vector:
         return tf.reshape(res + bias_term, [-1])
     else:
         return res + bias_term
 
-def Linear(input_, output_size, stddev=0.5,
-           is_range=False, squeeze=False,
-           name=None, reuse=None):
-    """Applies a linear transformation to the incoming data.
-
-    Args:
-        input: a 2-D or 1-D data (`Tensor` or `ndarray`)
-        output_size: the size of output matrix or vector
-    """
-    with tf.variable_scope("Linear", reuse=reuse):
-        if type(input_) == np.ndarray:
-            shape = input_.shape
-        else:
-            shape = input_.get_shape().as_list()
-
-        is_vector = False
-        if len(shape) == 1:
-            is_vector = True
-            input_ = tf.reshape(input_, [1, -1])
-            input_size = shape[0]
-        elif len(shape) == 2:
-            input_size = shape[1]
-        else:
-            raise ValueError("Linear expects shape[1] of inputuments: %s" % str(shape))
-
-        w_name = "%s_w" % name if name else None
-        b_name = "%s_b" % name if name else None
-
-        w = tf.get_variable(w_name, [input_size, output_size], tf.float32,
-                            tf.random_normal_initializer(stddev=stddev))
-        mul = tf.matmul(input_, w)
-
-        if is_range:
-            def identity_initializer(tensor):
-                def _initializer(shape, dtype=tf.float32, partition_info=None):
-                    return tf.identity(tensor)
-                return _initializer
-
-            range_ = tf.reverse(tf.range(1, output_size+1, 1), [True])
-            b = tf.get_variable(b_name, [output_size], tf.float32,
-                                identity_initializer(tf.cast(range_, tf.float32)))
-        else:
-            b = tf.get_variable(b_name, [output_size], tf.float32, 
-                                tf.random_normal_initializer(stddev=stddev))
-
-        if squeeze:
-            output = tf.squeeze(tf.nn.bias_add(mul, b))
-        else:
-            output = tf.nn.bias_add(mul, b)
-
-        if is_vector:
-            return tf.reshape(output, [-1])
-        else:
-            return output
+# def Linear(input_, output_size, stddev=0.5,
+#            is_range=False, squeeze=False,
+#            name=None, reuse=None):
+#     """Applies a linear transformation to the incoming data.
+#
+#     Args:
+#         input: a 2-D or 1-D data (`Tensor` or `ndarray`)
+#         output_size: the size of output matrix or vector
+#     """
+#     with tf.variable_scope("Linear", reuse=reuse):
+#         if type(input_) == np.ndarray:
+#             shape = input_.shape
+#         else:
+#             shape = input_.get_shape().as_list()
+#
+#         is_vector = False
+#         if len(shape) == 1:
+#             is_vector = True
+#             input_ = tf.reshape(input_, [1, -1])
+#             input_size = shape[0]
+#         elif len(shape) == 2:
+#             input_size = shape[1]
+#         else:
+#             raise ValueError("Linear expects shape[1] of inputuments: %s" % str(shape))
+#
+#         w_name = "%s_w" % name if name else None
+#         b_name = "%s_b" % name if name else None
+#
+#         w = tf.get_variable(w_name, [input_size, output_size], tf.float32,
+#                             tf.random_normal_initializer(stddev=stddev))
+#         mul = tf.matmul(input_, w)
+#
+#         if is_range:
+#             def identity_initializer(tensor):
+#                 def _initializer(shape, dtype=tf.float32, partition_info=None):
+#                     return tf.identity(tensor)
+#                 return _initializer
+#
+#             range_ = tf.reverse(tf.range(1, output_size+1, 1), [True])
+#             b = tf.get_variable(b_name, [output_size], tf.float32,
+#                                 identity_initializer(tf.cast(range_, tf.float32)))
+#         else:
+#             b = tf.get_variable(b_name, [output_size], tf.float32,
+#                                 tf.random_normal_initializer(stddev=stddev))
+#
+#         if squeeze:
+#             output = tf.squeeze(tf.nn.bias_add(mul, b))
+#         else:
+#             output = tf.nn.bias_add(mul, b)
+#
+#         if is_vector:
+#             return tf.reshape(output, [-1])
+#         else:
+#             return output
 
 def smooth_cosine_similarity(m, v):
     """Computes smooth cosine similarity.
