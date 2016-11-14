@@ -214,11 +214,12 @@ def binary_cross_entropy_with_logits(logits, targets, name=None):
         targets: A `Tensor` of the same type and shape as `logits`.
     """
     eps = 1e-12
-    with ops.name_scope(name, "bce_loss", [logits, targets]) as name:
-        logits = ops.convert_to_tensor(logits, name="logits")
+    with ops.name_scope(name, "bce_loss", [targets, logits]) as name:
         targets = ops.convert_to_tensor(targets, name="targets")
-        return -math_ops.reduce_mean(logits * math_ops.log(targets + eps) +
-                                     (1 - logits) * math_ops.log(1 - targets + eps))
+        logits = ops.convert_to_tensor(logits, name="logits")
+        return -math_ops.reduce_mean(targets * math_ops.log(logits + eps) +
+                                     (1 - targets) * math_ops.log(1 - logits + eps))
+
 
 def scalar_mul(x, beta, name=None):
     return x * beta
