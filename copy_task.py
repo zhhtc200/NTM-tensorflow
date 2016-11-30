@@ -29,7 +29,7 @@ def copy_train(config, sess):
 
 
         print(" [*] Initialize all variables")
-        tf.initialize_all_variables().run()
+        tf.global_variable_initializer().run()
         print(" [*] Initialization finished")
     else:
         ntm.load(config.checkpoint_dir, 'copy')

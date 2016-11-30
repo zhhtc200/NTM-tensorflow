@@ -7,13 +7,12 @@ def convert(dictionary):
 
 FLAGS = {
     'epoch': 100000,
-    'input_dim': 10,
-    'output_dim': 10,
-    'length':10,
+    'input_dim': 5,
+    'output_dim': 5,
+    'length':5,
     'controller_layer_size':1,
     'write_head_size': 1,
     'read_head_size': 1,
-    'test_max_length': 120,
     'checkpoint_dir': 'checkpoint'
 }
 FLAGS = convert(FLAGS)
