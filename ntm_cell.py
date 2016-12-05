@@ -123,14 +123,14 @@ class NTMCell(object):
                 if layer_idx == 0:
                     def new_gate(gate_name):
                         return linear([input_, o_prev] + read_list_prev,
-                                      output_size = self.controller_dim,
-                                      bias = True,
-                                      scope = "%s_gate_%s" % (gate_name, layer_idx))
+                                      output_size=self.controller_dim,
+                                      bias=True,
+                                      scope="%s_gate_%s" % (gate_name, layer_idx))
                 else:
                     def new_gate(gate_name):
                         return linear([output_list[-1], o_prev],
-                                      output_size = self.controller_dim,
-                                      bias = True,
+                                      output_size=self.controller_dim,
+                                      bias=True,
                                       scope="%s_gate_%s" % (gate_name, layer_idx))
 
                 # input, forget, and output gates for LSTM
@@ -181,7 +181,7 @@ class NTMCell(object):
                                                               last_output, 0)
 
                 M_erase = tf.ones([self.mem_size, self.mem_dim]) \
-                                  - outer_product(write_w, erase)
+                          - outer_product(write_w, erase)
                 M_write = outer_product(write_w, write)
 
                 write_w_list = [write_w]
@@ -208,7 +208,7 @@ class NTMCell(object):
                                     - outer_product(write_w_idx, erase_idx))
                     M_writes.append(outer_product(write_w_idx, write_idx))
 
-                M_erase = reduce(lambda x, y: x*y, M_erases)
+                M_erase = reduce(lambda x, y: x * y, M_erases)
                 M_write = tf.add_n(M_writes)
 
             M = M_prev * M_erase + M_write
@@ -237,14 +237,14 @@ class NTMCell(object):
                 w = linear(last_output, 2 * self.shift_range + 1, bias=True, scope='s_w_%s' % idx)
                 s_w = softmax(w)
             with tf.variable_scope("beta"):
-                beta  = tf.nn.softplus(linear(last_output, 1, bias=True, scope='beta_%s' % idx))
+                beta = tf.nn.softplus(linear(last_output, 1, bias=True, scope='beta_%s' % idx))
             with tf.variable_scope("gamma"):
                 gamma = tf.add(tf.nn.softplus(linear(last_output, 1, bias=True, scope='gamma_%s' % idx)),
                                tf.constant(1.0))
 
             # 3.3.1
             # Cosine similarity
-            similarity = smooth_cosine_similarity(M_prev, k) # [mem_size x 1]
+            similarity = smooth_cosine_similarity(M_prev, k)  # [mem_size x 1]
             # Focusing by content
             content_focused_w = softmax(scalar_mul(similarity, beta))
 
@@ -302,8 +302,8 @@ class NTMCell(object):
                 write_w_list_init.append(softmax(write_w_idx))
 
             # controller state
-            output_init_list = []                     
-            hidden_init_list = []                     
+            output_init_list = []
+            hidden_init_list = []
             for idx in range(self.controller_layer_size):
                 output_init_idx = \
                     array_ops.zeros([self.controller_dim], dtype=tf.float32,

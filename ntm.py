@@ -2,16 +2,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
 import tensorflow as tf
 from collections import defaultdict
-from tensorflow.python.ops import array_ops
 from tensorflow.python.ops.seq2seq import sequence_loss
-from ops import binary_cross_entropy_with_logits
-
 import ntm_cell
-
 import os
+
 
 class NTM(object):
     def __init__(self, cell, sess, length,
@@ -96,7 +92,7 @@ class NTM(object):
                                         weights=self.masks,
                                         average_across_timesteps=True,
                                         average_across_batch=False,
-                                        softmax_loss_function=binary_cross_entropy_with_logits)
+                                        softmax_loss_function=tf.squared_difference)
 
             self.params = tf.trainable_variables()
 
