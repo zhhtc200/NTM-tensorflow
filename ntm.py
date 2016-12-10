@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import tensorflow as tf
 from collections import defaultdict
-from tensorflow.python.ops.seq2seq import sequence_loss
 import ntm_cell
 import os
 
@@ -43,10 +42,10 @@ class NTM(object):
         self.max_grad = max_grad
         self.length = length
 
-        self.inputs = []
+        self.inputs = tf.placeholder(tf.float32, [2 * self.length + 2, self.cell.input_dim])
         self.outputs = []
-        self.true_outputs = []
-        self.masks = []
+        self.true_outputs = tf.placeholder(tf.float32, [2 * self.length + 2, self.cell.output_dim])
+        self.masks = tf.placeholder(tf.float32, [2 * self.length + 2])
 
         self.prev_states = None
         self.input_states = defaultdict(list)
@@ -70,14 +69,10 @@ class NTM(object):
 
         with tf.variable_scope(self.scope):
             prev_state = None
+            seq_input = tf.unpack(self.inputs, axis=0)
             for seq_length in range(2 * self.length + 2):
                 # Build input
-                input_ = tf.placeholder(tf.float32, [self.cell.input_dim], name='input_%s' % seq_length)
-                true_output = tf.placeholder(tf.float32, [self.cell.output_dim], name='true_output_%s' % seq_length)
-                mask = tf.placeholder(tf.float32, [1], name='mask%s' % seq_length)
-                self.inputs.append(input_)
-                self.true_outputs.append(true_output)
-                self.masks.append(mask)
+                input_ = seq_input[seq_length]
 
                 if prev_state is None:
                     output, prev_state = self.cell(input_, state=None)
@@ -87,12 +82,13 @@ class NTM(object):
                 self.outputs.append(output)
 
             print(" [*] Process to loss function.")
-            self.losses = sequence_loss(logits=self.outputs,
-                                        targets=self.true_outputs,
-                                        weights=self.masks,
-                                        average_across_timesteps=True,
-                                        average_across_batch=False,
-                                        softmax_loss_function=tf.squared_difference)
+
+            output_stack = tf.pack(self.outputs)
+
+            res = tf.square(output_stack - self.true_outputs)
+            res = tf.reduce_sum(res, 1)
+            masked_R = tf.mul(res, self.masks)
+            self.losses = tf.reduce_sum(masked_R) / tf.reduce_sum(self.masks)
 
             self.params = tf.trainable_variables()
 
@@ -115,7 +111,8 @@ class NTM(object):
         print(" [*] Build a NTM model finished")
 
     def save(self, checkpoint_dir, task_name, step):
-        task_dir = os.path.join(checkpoint_dir, "%s_%s" % (task_name, self.length))
+        task_dir = os.path.join(checkpoint_dir, "%s_%s" %
+                                (task_name, self.length))
         file_name = "NTM_%s.model" % task_name
 
         if not os.path.exists(task_dir):
@@ -134,6 +131,7 @@ class NTM(object):
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
         if ckpt and ckpt.model_checkpoint_path:
             ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
-            self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
+            self.saver.restore(self.sess, os.path.join(
+                checkpoint_dir, ckpt_name))
         else:
             raise Exception(" [!] Testing, but %s not found" % checkpoint_dir)

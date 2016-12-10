@@ -121,6 +121,7 @@ class NTMCell(object):
                 h_prev = hidden_list_prev[layer_idx]
 
                 if layer_idx == 0:
+                    print(read_list_prev, input_, output_list_prev[0])
                     def new_gate(gate_name):
                         return linear([input_, o_prev] + read_list_prev,
                                       output_size=self.controller_dim,
@@ -177,11 +178,12 @@ class NTMCell(object):
                 write_w_prev = write_w_list_prev[0]
 
                 write_w, write, erase = self.build_write_head(M_prev,
-                                                              tf.squeeze(write_w_prev),
+                                                              tf.squeeze(
+                                                                  write_w_prev),
                                                               last_output, 0)
 
                 M_erase = tf.ones([self.mem_size, self.mem_dim]) \
-                          - outer_product(write_w, erase)
+                    - outer_product(write_w, erase)
                 M_write = outer_product(write_w, write)
 
                 write_w_list = [write_w]
@@ -204,7 +206,7 @@ class NTMCell(object):
                     write_list.append(write_idx)
                     erase_list.append(erase_idx)
 
-                    M_erases.append(tf.ones([self.mem_size, self.mem_dim]) \
+                    M_erases.append(tf.ones([self.mem_size, self.mem_dim])
                                     - outer_product(write_w_idx, erase_idx))
                     M_writes.append(outer_product(write_w_idx, write_idx))
 
@@ -228,16 +230,20 @@ class NTMCell(object):
             # Figure 2.
             # Amplify or attenuate the precision
             with tf.variable_scope("k"):
-                k = tf.tanh(linear(last_output, self.mem_dim, bias=True, scope='k_%s' % idx))
+                k = tf.tanh(linear(last_output, self.mem_dim,
+                                   bias=True, scope='k_%s' % idx))
             # Interpolation gate
             with tf.variable_scope("g"):
-                g = tf.sigmoid(linear(last_output, 1, bias=True, scope='g_%s' % idx))
+                g = tf.sigmoid(
+                    linear(last_output, 1, bias=True, scope='g_%s' % idx))
             # shift weighting
             with tf.variable_scope("s_w"):
-                w = linear(last_output, 2 * self.shift_range + 1, bias=True, scope='s_w_%s' % idx)
+                w = linear(last_output, 2 * self.shift_range +
+                           1, bias=True, scope='s_w_%s' % idx)
                 s_w = softmax(w)
             with tf.variable_scope("beta"):
-                beta = tf.nn.softplus(linear(last_output, 1, bias=True, scope='beta_%s' % idx))
+                beta = tf.nn.softplus(
+                    linear(last_output, 1, bias=True, scope='beta_%s' % idx))
             with tf.variable_scope("gamma"):
                 gamma = tf.add(tf.nn.softplus(linear(last_output, 1, bias=True, scope='gamma_%s' % idx)),
                                tf.constant(1.0))
@@ -268,8 +274,10 @@ class NTMCell(object):
                 return w, read
             else:
                 # 3.2 Writing
-                erase = tf.sigmoid(linear(last_output, self.mem_dim, bias=True, scope='erase_%s' % idx))
-                add = tf.tanh(linear(last_output, self.mem_dim, bias=True, scope='add_%s' % idx))
+                erase = tf.sigmoid(
+                    linear(last_output, self.mem_dim, bias=True, scope='erase_%s' % idx))
+                add = tf.tanh(linear(last_output, self.mem_dim,
+                                     bias=True, scope='add_%s' % idx))
                 return w, add, erase
 
     def initial_state(self, dummy_value=0.0):
@@ -277,7 +285,8 @@ class NTMCell(object):
         self.states = []
         with tf.variable_scope("init_cell"):
             # memory
-            M_init = array_ops.zeros([self.mem_size, self.mem_dim], dtype=tf.float32)
+            M_init = array_ops.zeros(
+                [self.mem_size, self.mem_dim], dtype=tf.float32)
 
             # read weights
             read_w_list_init = []
@@ -314,7 +323,8 @@ class NTMCell(object):
                                     name='hidden_init_%s' % idx)
                 hidden_init_list.append(tf.tanh(hidden_init_idx))
 
-            output = array_ops.zeros([self.output_dim], dtype=tf.float32, name='new_output')
+            output = array_ops.zeros(
+                [self.output_dim], dtype=tf.float32, name='new_output')
 
             state = {
                 'M': M_init,

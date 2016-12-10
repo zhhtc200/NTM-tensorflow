@@ -19,5 +19,5 @@ FLAGS = {
 }
 FLAGS = convert(FLAGS)
 
-with tf.Session() as sess:
+with tf.device('/cpu:0'), tf.Session() as sess:
     cell, ntm = copy_train(FLAGS, sess)

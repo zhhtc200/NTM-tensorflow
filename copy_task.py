@@ -7,7 +7,7 @@ import tensorflow as tf
 from ntm import NTM
 from ntm_cell import NTMCell
 
-print_interval = 50
+print_interval = 100
 
 
 def copy_train(config, sess):
@@ -37,13 +37,7 @@ def copy_train(config, sess):
         seq_length = np.random.randint(2, config.length + 1)
         X, Y, masks = build_seq_batch(seq_length, config.length, config.input_dim - 2)
 
-        feed_dict = {input_: vec for vec, input_ in zip(X, ntm.inputs)}
-        feed_dict.update(
-            {true_output: vec for vec, true_output in zip(Y, ntm.true_outputs)}
-        )
-        feed_dict.update(
-            {mask: vec for vec, mask in zip(masks, ntm.masks)}
-        )
+        feed_dict = {ntm.inputs: X, ntm.true_outputs: Y, ntm.masks: masks}
 
         if idx % print_interval != 0:
             _, cost, step = sess.run([ntm.optims,
@@ -69,7 +63,7 @@ def copy_train(config, sess):
 def build_seq_batch(length, max_len, input_dim):
     X_input = np.zeros((max_len * 2 + 2, input_dim + 2))
     Y_input = np.zeros((max_len * 2 + 2, input_dim + 2))
-    Mask = np.zeros((max_len * 2 + 2, 1))
+    Mask = np.zeros((max_len * 2 + 2))
 
     # Build time sequences
     X_input[0, 0] = 1
@@ -78,6 +72,6 @@ def build_seq_batch(length, max_len, input_dim):
         X_input[time_instant + 1, picked + 2] = 1
         Y_input[time_instant + length + 2, picked + 2] = 1
     X_input[length + 1, 1] = 1
-    Mask[length + 2:2 * length + 2, 0] = 1
+    Mask[length + 2:2 * length + 2] = 1
 
     return X_input, Y_input, Mask
