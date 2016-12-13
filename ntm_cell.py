@@ -121,7 +121,6 @@ class NTMCell(object):
                 h_prev = hidden_list_prev[layer_idx]
 
                 if layer_idx == 0:
-                    print(read_list_prev, input_, output_list_prev[0])
                     def new_gate(gate_name):
                         return linear([input_, o_prev] + read_list_prev,
                                       output_size=self.controller_dim,

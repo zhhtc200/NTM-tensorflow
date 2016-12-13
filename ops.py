@@ -4,7 +4,6 @@ import tensorflow as tf
 
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import init_ops
-from tensorflow.python.framework import ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import variable_scope as vs
 
@@ -97,18 +96,16 @@ def circular_convolution(v, k):
     """
     size = int(v.get_shape()[0])
     kernel_size = int(k.get_shape()[0])
-    kernel_shift = int(math.floor(kernel_size / 2.0))
+    kernel_shift = int(math.floor(kernel_size/2.0))
 
     def loop(idx):
         if idx < 0: return size + idx
-        if idx >= size:
-            return idx - size
-        else:
-            return idx
+        if idx >= size : return idx - size
+        else: return idx
 
     kernels = []
     for i in range(size):
-        indices = [loop(i + j) for j in range(kernel_shift, -kernel_shift - 1, -1)]
+        indices = [loop(i+j) for j in range(kernel_shift, -kernel_shift-1, -1)]
         v_ = tf.gather(v, indices)
         kernels.append(tf.reduce_sum(v_ * k, 0))
 
@@ -122,7 +119,6 @@ def circular_convolution(v, k):
     #         output = tf.scatter_add(output, [i], tf.reshape(w, [1, -1]))
 
     return tf.dynamic_stitch([i for i in range(size)], kernels)
-
 
 def outer_product(*inputs):
     """Computes outer product.
@@ -154,23 +150,7 @@ def outer_product(*inputs):
     return output
 
 
-def binary_cross_entropy_with_logits(logits, targets, name=None):
-    """Computes binary cross entropy given `logits`.
 
-    For brevity, let `x = logits`, `z = targets`.  The logistic loss is
-
-        loss(x, z) = - sum_i (x[i] * log(z[i]) + (1 - x[i]) * log(1 - z[i]))
-
-    Args:
-        logits: A `Tensor` of type `float32` or `float64`.
-        targets: A `Tensor` of the same type and shape as `logits`.
-    """
-    eps = 1e-12
-    with ops.name_scope(name, "bce_loss", [targets, logits]) as name:
-        targets = ops.convert_to_tensor(targets, name="targets")
-        logits = ops.convert_to_tensor(logits, name="logits")
-        return -math_ops.reduce_mean(targets * math_ops.log(logits + eps) +
-                                     (1 - targets) * math_ops.log(1 - logits + eps))
 
 
 def scalar_mul(x, beta, name=None):

@@ -42,10 +42,10 @@ class NTM(object):
         self.max_grad = max_grad
         self.length = length
 
-        self.inputs = tf.placeholder(tf.float32, [2 * self.length + 2, self.cell.input_dim])
+        self.inputs = tf.placeholder(tf.float32, [self.length, self.cell.input_dim])
         self.outputs = []
-        self.true_outputs = tf.placeholder(tf.float32, [2 * self.length + 2, self.cell.output_dim])
-        self.masks = tf.placeholder(tf.float32, [2 * self.length + 2])
+        self.true_outputs = tf.placeholder(tf.float32, [self.length, self.cell.output_dim])
+        self.masks = tf.placeholder(tf.float32, [self.length])
 
         self.prev_states = None
         self.input_states = defaultdict(list)
@@ -70,7 +70,7 @@ class NTM(object):
         with tf.variable_scope(self.scope):
             prev_state = None
             seq_input = tf.unpack(self.inputs, axis=0)
-            for seq_length in range(2 * self.length + 2):
+            for seq_length in range(self.length):
                 # Build input
                 input_ = seq_input[seq_length]
 
