@@ -71,19 +71,21 @@ def smooth_cosine_similarity(m, v):
     """Computes smooth cosine similarity.
 
     Args:
-        m: a 2-D `Tensor` (matrix)
-        v: a 1-D `Tensor` (vector)
+        m: a 2-D `Tensor` [batch_size, mem_loc, men_size]
+        v: a 2-D `Tensor` [batch_size, men_size]
     """
-    shape_x = m.get_shape().as_list()
-    shape_y = v.get_shape().as_list()
-    if shape_x[1] != shape_y[0]:
-        raise ValueError("Smooth cosine similarity is expecting same dimemsnion")
+    # shape_x = m.get_shape().as_list()
+    # shape_y = v.get_shape().as_list()
+    # if shape_x[1] != shape_y[0]:
+    #     raise ValueError("Smooth cosine similarity is expecting same dimemsnion")
 
-    m_norm = tf.sqrt(tf.reduce_sum(tf.pow(m, 2), 1))
-    v_norm = tf.sqrt(tf.reduce_sum(tf.pow(v, 2)))
-    m_dot_v = tf.matmul(m, tf.reshape(v, [-1, 1]))
+    m_norm = tf.sqrt(tf.reduce_sum(tf.pow(m, 2), 2)) #[batch_size, mem_loc]
+    v_norm = tf.sqrt(tf.reduce_sum(tf.pow(v, 2), 1)) #[batch_size, 1]
+    m_dot_v = tf.matmul(m, tf.expand_dims(v, 2))
+    m_dot_v = tf.squeeze(m_dot_v, axis=2) #[batch_size, mem_loc]
 
-    similarity = tf.div(tf.reshape(m_dot_v, [-1]), m_norm * v_norm + 1e-3)
+    similarity = tf.div(tf.div(m_dot_v, m_norm + 1e-4), v_norm + 1e-4)
+    #similarity = tf.div(tf.reshape(m_dot_v, [-1]), m_norm * v_norm + 1e-3)
     return similarity
 
 
@@ -94,20 +96,26 @@ def circular_convolution(v, k):
         v: a 1-D `Tensor` (vector)
         k: a 1-D `Tensor` (kernel)
     """
-    size = int(v.get_shape()[0])
-    kernel_size = int(k.get_shape()[0])
+    batch_size = int(v.get_shape()[0])
+    size = int(v.get_shape()[1])
+    kernel_size = int(k.get_shape()[1])
     kernel_shift = int(math.floor(kernel_size/2.0))
 
     def loop(idx):
         if idx < 0: return size + idx
-        if idx >= size : return idx - size
+        if idx >= size: return idx - size
         else: return idx
 
-    kernels = []
-    for i in range(size):
-        indices = [loop(i+j) for j in range(kernel_shift, -kernel_shift-1, -1)]
-        v_ = tf.gather(v, indices)
-        kernels.append(tf.reduce_sum(v_ * k, 0))
+    output = []
+    for batch_id in range(batch_size):
+        kernels = []
+        for i in range(size):
+            indices = [loop(i+j) for j in range(kernel_shift, -kernel_shift-1, -1)]
+            v_ = tf.gather(v[batch_id], indices)
+            kernels.append(tf.reduce_sum(v_ * k[batch_id], 0))
+        batch_output = tf.pack(kernels)
+        output.append(batch_output)
+    output = tf.pack(output)
 
     # # code with double loop
     # for i in xrange(size):
@@ -118,7 +126,7 @@ def circular_convolution(v, k):
     #         w = tf.gather(v, int(idx)) * tf.gather(kernel, j)
     #         output = tf.scatter_add(output, [i], tf.reshape(w, [1, -1]))
 
-    return tf.dynamic_stitch([i for i in range(size)], kernels)
+    return output
 
 def outer_product(*inputs):
     """Computes outer product.

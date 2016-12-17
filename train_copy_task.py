@@ -29,8 +29,8 @@ print_interval = 200
 
 config = {
     'epoch': 100000,
-    'input_dim': 7,
-    'output_dim': 7,
+    'input_dim': 5,
+    'output_dim': 5,
     'length': 5,
     'controller_layer_size': 1,
     'write_head_size': 1,
@@ -72,8 +72,7 @@ if __name__ == "__main__":
                                                  ntm.losses,
                                                  ntm.global_step,
                                                  ntm.outputs], feed_dict=feed_dict)
-                print("[%5d] %2d: %.4f (%.1fs)" \
-                      % (idx, seq_length, cost, time.time() - start_time))
+                print("[%5d] %2d: %.4f (%.1fs)" % (idx, seq_length, cost, time.time() - start_time))
                 Y_pre = np.array(Y_pre)
                 mask_id = masks.reshape(-1).astype(bool)
                 print(np.argmax(Y, axis=1)[mask_id])
